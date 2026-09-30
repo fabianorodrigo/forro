@@ -69,6 +69,8 @@ textarea{width:100%;min-height:230px;resize:vertical;font-family:"JetBrains Mono
 #errors{margin:8px 0 0;padding:0;list-style:none;color:var(--s);font-weight:600;font-size:.92rem}
 .editor .row{margin-bottom:0}
 .editor select{flex:1 1 180px;min-width:0}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:disabled:hover{background:var(--paper2);color:var(--ink)}
 dialog{width:min(720px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:6px}
 dialog::backdrop{background:rgba(35,26,18,.55)}
 .field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
@@ -162,7 +164,9 @@ summary{cursor:pointer;font-family:"Alfa Slab One",Rockwell,serif;font-size:1.2r
         <select id="preset"></select>
         <button type="button" id="edit">Editar</button>
         <button type="button" id="new">Novo</button>
+        <button type="button" id="export">Exportar lista</button>
       </div>
+      <p class="hint" id="status">Lista salva neste navegador.</p>
     </section>
 
     <section class="timing">
@@ -543,7 +547,112 @@ try{
   const c=+localStorage.getItem('forro-sel');
   if(c>=0&&c<steps.length) current=c;
 }catch(e){}
-function persist(){try{localStorage.setItem('forro-steps',JSON.stringify(steps));localStorage.setItem('forro-sel',String(current));}catch(e){}}
+function cleanSteps(x){
+  if(!Array.isArray(x)) return null;
+  const out=x.filter(p=>p&&typeof p.name==='string'&&typeof p.text==='string')
+             .slice(0,200).map(p=>({name:p.name.slice(0,80),text:p.text.slice(0,4000)}));
+  return out.length?out:null;
+}
+function persistLocal(){try{localStorage.setItem('forro-steps',JSON.stringify(steps));localStorage.setItem('forro-sel',String(current));}catch(e){}}
+function persist(){persistLocal();}
+function setStatus(t){$('#status').textContent=t}
+
+/* lista guardada junto com a página publicada */
+let shared=null,readOnly=false,jsonMode=false,saving=Promise.resolve();
+function setReadOnly(){
+  readOnly=true;
+  $('#edit').disabled=true;$('#new').disabled=true;
+  setStatus('Lista da página, somente leitura.');
+}
+async function saveShared(){
+  persistLocal();
+  if(!shared){
+    try{localStorage.setItem('forro-dirty','1')}catch(e){}
+    if(jsonMode) setStatus('Alterações só neste navegador. Exporte a lista para atualizar o passos.json.');
+    return;
+  }
+  if(readOnly) return;
+  const data={steps:steps.map(p=>({name:p.name,text:p.text}))};
+  saving=saving.then(async()=>{
+    setStatus('Salvando na página…');
+    try{await shared.set(data);setStatus('Lista salva na página.');}
+    catch(e){
+      if(e&&e.code==='invalid_argument'&&JSON.stringify(data).length>250000) setStatus('A lista ficou grande demais para a página. Salvo só neste navegador.');
+      else if(e&&e.code==='quota_exceeded') setStatus('A página não tem mais espaço para passos. Salvo só neste navegador.');
+      else if(e&&e.code==='revoked') {shared=null;setStatus('Salvo só neste navegador.');}
+      else if(e&&e.code==='invalid_argument') setReadOnly();
+      else setStatus('Não consegui salvar na página agora. Salvo neste navegador.');
+    }
+  });
+  return saving;
+}
+function adoptList(list){
+  if(JSON.stringify(list)===JSON.stringify(steps)) return;
+  const prevName=steps[current]&&steps[current].name;
+  const prevText=steps[current]&&steps[current].text;
+  steps=list;
+  const byName=steps.findIndex(p=>p.name===prevName);
+  current=byName>=0?byName:Math.min(current,steps.length-1);
+  fillSelect();
+  if(steps[current].text!==prevText){pos=0;cam=null;rebuild();}
+  persistLocal();
+}
+async function loadJson(){
+  let dirty=false;
+  try{dirty=localStorage.getItem('forro-dirty')==='1'}catch(e){}
+  try{
+    const r=await fetch('passos.json',{cache:'no-cache'});
+    if(!r.ok) throw new Error('sem arquivo');
+    const j=await r.json();
+    const list=cleanSteps(Array.isArray(j)?j:j&&j.steps);
+    if(!list) throw new Error('arquivo inválido');
+    jsonMode=true;
+    if(dirty&&JSON.stringify(list)===JSON.stringify(steps)){dirty=false;try{localStorage.setItem('forro-dirty','0')}catch(e){}}
+    if(dirty){setStatus('Alterações só neste navegador. Exporte a lista para atualizar o passos.json.');return;}
+    adoptList(list);
+    setStatus('Lista carregada do passos.json.');
+  }catch(e){
+    setStatus('Lista salva neste navegador.');
+  }
+}
+async function exportList(){
+  const data=JSON.stringify({steps:steps.map(p=>({name:p.name,text:p.text}))},null,2)+'\n';
+  let dl=null;
+  if(window.claude&&window.claude.use){try{dl=await window.claude.use('downloads');}catch(e){}}
+  if(dl){
+    try{await dl.save({filename:'passos.json',data});}
+    catch(e){if(e&&e.code!=='declined') setStatus('Não consegui exportar a lista aqui.');}
+    return;
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+  a.download='passos.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  setStatus(jsonMode||location.protocol.startsWith('http')
+    ?'Lista exportada. Substitua o passos.json na pasta da página e faça o commit.'
+    :'Lista exportada como passos.json.');
+}
+$('#export').onclick=exportList;
+
+(async()=>{
+  let db=null,user=null;
+  if(window.claude&&window.claude.use){try{db=await window.claude.use('db');}catch(e){}}
+  if(!db){await loadJson();return;}
+  try{user=await window.claude.use('user');}catch(e){}
+  if(user){try{if(await user.can('data.write')===false) setReadOnly();}catch(e){}}
+  shared=db.doc('biblioteca/passos');
+  if(!readOnly) setStatus('Lista salva na página.');
+  shared.onSnapshot(snap=>{
+    if(!snap.exists) return;               // página ainda sem lista: usa a local até o primeiro salvamento
+    const remote=cleanSteps((snap.data()||{}).steps);
+    if(!remote) return;
+    adoptList(remote);
+  },err=>{
+    shared=null;
+    if(!readOnly) setStatus('Salvo só neste navegador.');
+  });
+})();
 function fillSelect(){
   sel.innerHTML=steps.map((p,i)=>`<option value="${i}">${esc(p.name)}</option>`).join('');
   sel.value=String(current);
@@ -562,6 +671,7 @@ function showErrors(){
 sel.onchange=()=>{current=+sel.value;pos=0;cam=null;setPlaying(false);rebuild();persist();};
 
 function openEditor(idx){
+  if(readOnly) return;
   editing=idx;
   setPlaying(false);
   $('#dlgt').textContent=idx<0?'Novo passo':'Editar passo';
@@ -578,7 +688,7 @@ $('#save').onclick=()=>{
   const name=nameIn.value.trim()||('Passo novo '+(steps.length+1));
   if(editing<0){steps.push({name,text:src.value});current=steps.length-1;}
   else{steps[editing]={name,text:src.value};current=editing;}
-  fillSelect();pos=0;cam=null;rebuild();persist();
+  fillSelect();pos=0;cam=null;rebuild();saveShared();
   dlg.close();
 };
 let timer=null;
