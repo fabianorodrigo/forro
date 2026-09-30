@@ -14,7 +14,7 @@
     },
     {
       "name": "Dobradiça",
-      "text": "[F]   1       2    3    4  |  5       6    7    8\nC:    E←↺¼\"abre\"   Dx   E·   ~  |  D→↻¼\"fecha\"   Ex   D·   ~"
+      "text": "[F]   1                   2    3                   4  |  5                   6    7                   8\nC:    E←↺¼\"solta mão esq.\"  D·   Ex↻¼\"dá mão esq.\"    ~  |  D→↻¼\"solta mão dir.\"  E·   Dx↺¼\"dá mão dir.\"    ~"
     },
     {
       "name": "Giro simples do conduzido",
