@@ -111,6 +111,7 @@ summary{cursor:pointer;font-family:"Alfa Slab One",Rockwell,serif;font-size:1.2r
   </header>
 
   <div class="main">
+
     <section>
       <div class="stage">
         <svg id="floor" viewBox="-170 -170 340 340" role="img" aria-label="Pista vista de cima com a dupla dançando">
@@ -195,6 +196,9 @@ C:    E←   Dx   (E·)  ~  |  D→   Ex   (D·)  ~`},
  {name:'Básico frente e trás',text:
 `[F]   1    2    3    4  |  5    6    7    8
 C:    E↑   D·   Ex   ~  |  D↓   E·   Dx   ~`},
+ {name:'Dobradiça',text:
+`[F]   1       2    3    4  |  5       6    7    8
+C:    E←↺¼"abre"   Dx   E·   ~  |  D→↻¼"fecha"   Ex   D·   ~`},
  {name:'Giro simples do conduzido',text:
 `[A]   1                   2       3       4  |  5    6    7    8
 C:    E←"levanta a mão"   Dx      E·      ~  |  D→   Ex   D·   ~
@@ -286,6 +290,7 @@ function toVec(d,p){const c=Math.cos(d.h),s=Math.sin(d.h);return [c*p[0]-s*p[1],
 function apply(d,a){
   const fx={};
   if(!a||a.pause) return fx;
+  if(a.rot) d.h+=a.rot*Math.PI; // metade do giro antes do passo
   const f=a.foot,o=f==='E'?'D':'E',P=d[f],Q=d[o];
   let t=[P[0],P[1]];
   const has=x=>a.dirs.includes(x);
@@ -308,7 +313,7 @@ function apply(d,a){
     d.w=f;
     if(moved) fx.step=f; else fx.pulse=f;
   }
-  if(a.rot) d.h+=a.rot*2*Math.PI;
+  if(a.rot) d.h+=a.rot*Math.PI; // metade depois
   return fx;
 }
 function simulate(phrases){
@@ -518,7 +523,7 @@ const sel=$('#preset');
 sel.innerHTML=PRESETS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('')+'<option value="-1">Meu passo</option>';
 sel.onchange=()=>{const p=PRESETS[+sel.value];if(!p)return;src.value=p.text;pos=0;cam=null;setPlaying(false);rebuild();};
 
-const SYMS=['←','→','↑','↓','·','x','~','(',')','↺½','↻½','↺1','|','"','[F]','[A]','[M]','C: ','S: '];
+const SYMS=['←','→','↑','↓','·','x','~','(',')','↺¼','↻¼','↺½','↻½','↺1','↻1','|','"','[F]','[A]','[M]','C: ','S: '];
 $('#palette').innerHTML=SYMS.map(s=>`<button type="button" data-s="${esc(s)}">${esc(s.trim())}</button>`).join('');
 $('#palette').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
