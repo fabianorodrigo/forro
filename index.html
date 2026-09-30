@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tablatura de forró</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Karla:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9D6AE; --paper2:#DFC894; --ink:#231A12; --muted:#6B5842;
+  --c:#23408E; --s:#C3272B; --sun:#EDB120; --floor:#D8BE88; --line:rgba(35,26,18,.13);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1D1712; --paper2:#2A2119; --ink:#EFE3C8; --muted:#B39E7E;
+    --c:#86A6F2; --s:#F2806F; --sun:#F2C14E; --floor:#251D15; --line:rgba(239,227,200,.10);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1D1712; --paper2:#2A2119; --ink:#EFE3C8; --muted:#B39E7E;
+  --c:#86A6F2; --s:#F2806F; --sun:#F2C14E; --floor:#251D15; --line:rgba(239,227,200,.10);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Karla,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 48px}
+header{margin-bottom:20px}
+h1{font-family:"Alfa Slab One",Rockwell,"Courier New",serif;font-weight:400;font-size:clamp(2rem,5.5vw,3.4rem);line-height:1.02;margin:0 0 6px;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:60ch}
+.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:1fr}}
+
+.stage{position:relative;background:var(--floor);border:2px solid var(--ink);border-radius:6px;overflow:hidden;aspect-ratio:1/1;max-height:78vh}
+.stage svg{display:block;width:100%;height:100%}
+.count{position:absolute;top:10px;left:14px;pointer-events:none;display:flex;align-items:baseline;gap:8px}
+#cnum{font-family:"Alfa Slab One",Rockwell,serif;font-size:clamp(4rem,11vw,6.5rem);line-height:.9;color:var(--sun);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+#cof{font-weight:700;color:var(--muted)}
+.hud-r{position:absolute;top:14px;right:14px;text-align:right;pointer-events:none;font-size:.9rem}
+.hud-r strong{display:block;font-size:1rem}
+#note{position:absolute;left:14px;right:14px;bottom:12px;pointer-events:none;font-weight:600;min-height:1.5em}
+#note span{background:var(--paper);border:1.5px solid var(--ink);padding:2px 8px;border-radius:3px;margin-right:6px;display:inline-block;margin-top:4px}
+.who{position:absolute;right:14px;bottom:12px;display:flex;gap:10px;font-size:.85rem;pointer-events:none}
+.who i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px}
+button,select{font:inherit;color:var(--ink);background:var(--paper2);border:1.5px solid var(--ink);border-radius:4px;padding:6px 12px;cursor:pointer}
+button:hover{background:var(--sun);color:#231A12}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible,td[data-k]:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+#play{font-weight:700;min-width:96px}
+.bpm{display:flex;align-items:center;gap:8px}
+.bpm input{accent-color:var(--s);width:120px}
+label.chk{display:flex;align-items:center;gap:6px;cursor:pointer}
+label.chk input{accent-color:var(--s)}
+
+.editor h2,.below h2{font-family:"Alfa Slab One",Rockwell,serif;font-weight:400;font-size:1.3rem;margin:0 0 8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.palette{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.palette button{font-family:"JetBrains Mono",Menlo,Consolas,monospace;padding:4px 0;min-width:36px;text-align:center}
+textarea{width:100%;min-height:230px;resize:vertical;font-family:"JetBrains Mono",Menlo,Consolas,monospace;font-size:14px;line-height:1.7;color:var(--ink);background:var(--paper2);border:1.5px solid var(--ink);border-radius:4px;padding:12px}
+.hint{font-size:.9rem;color:var(--muted);margin:6px 0 0}
+#errors{margin:8px 0 0;padding:0;list-style:none;color:var(--s);font-weight:600;font-size:.92rem}
+
+.below{margin-top:32px}
+#grid{display:flex;flex-direction:column;gap:14px}
+.phrase{overflow-x:auto}
+.ph-head{font-weight:700;margin-bottom:4px}
+.phrase table{border-collapse:collapse;font-family:"JetBrains Mono",Menlo,Consolas,monospace;font-size:14px}
+.phrase th,.phrase td{border:1.5px solid var(--ink);padding:6px 10px;text-align:center;min-width:52px;white-space:nowrap}
+.phrase th{background:var(--paper2);font-family:Karla,sans-serif}
+.phrase th.C{color:var(--c)} .phrase th.S{color:var(--s)}
+.phrase td[data-k]{cursor:pointer}
+.phrase td.auto{color:var(--muted);font-style:italic}
+.phrase .on{background:var(--sun);color:#231A12}
+.phrase td.bad{text-decoration:wavy underline var(--s)}
+.mirror{font-size:.85rem;color:var(--muted);margin-top:4px}
+
+details{margin-top:28px;border-top:2px solid var(--ink);padding-top:12px}
+summary{cursor:pointer;font-family:"Alfa Slab One",Rockwell,serif;font-size:1.2rem}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 24px;margin-top:10px}
+.legend div{display:flex;gap:10px}
+.legend code{font-family:"JetBrains Mono",monospace;font-weight:600;min-width:52px}
+
+/* SVG */
+.tile{fill:none;stroke:var(--line);stroke-width:1}
+#arms{stroke:var(--ink);stroke-linecap:round;opacity:.5}
+.body .shoulders{fill-opacity:.16;stroke-width:1.5}
+.body .head{fill-opacity:.4}
+.body.C .shoulders,.body.C .head,.body.C .nose{fill:var(--c);stroke:var(--c)}
+.body.S .shoulders,.body.S .head,.body.S .nose{fill:var(--s);stroke:var(--s)}
+.foot ellipse{stroke-width:1.6;fill:var(--floor)}
+.foot.C ellipse{stroke:var(--c)} .foot.S ellipse{stroke:var(--s)}
+.foot.C.w ellipse{fill:var(--c)} .foot.S.w ellipse{fill:var(--s)}
+.ft{font:700 7px Karla,sans-serif;fill:var(--ink)}
+.ft.w{fill:var(--floor)}
+.ghost{fill:none;stroke-width:1.2;stroke-dasharray:2 2;opacity:.55}
+.ghost.C{stroke:var(--c)} .ghost.S{stroke:var(--s)}
+.role{font:700 11px Karla,sans-serif}
+.role.C{fill:var(--c)} .role.S{fill:var(--s)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tablatura de forró</h1>
+    <p>Escreva o passo na notação e veja a dupla dançar, vista de cima. Pé cheio carrega o peso; pé vazado está livre.</p>
+  </header>
+
+  <div class="main">
+    <section>
+      <div class="stage">
+        <svg id="floor" viewBox="-170 -170 340 340" role="img" aria-label="Pista vista de cima com a dupla dançando">
+          <defs>
+            <pattern id="tiles" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path class="tile" d="M40 0H0V40"/>
+            </pattern>
+          </defs>
+          <g id="world">
+            <rect x="-4000" y="-4000" width="8000" height="8000" fill="url(#tiles)"/>
+            <line id="arms"/>
+            <g id="bodies"></g>
+            <g id="ghosts"></g>
+            <g id="feet"></g>
+            <g id="labels"></g>
+          </g>
+        </svg>
+        <div class="count" aria-live="polite"><span id="cnum">1</span><span id="cof">de 8</span></div>
+        <div class="hud-r"><strong id="hold">Abraço fechado</strong><span id="phase">Frase 1 de 2</span></div>
+        <div id="note"></div>
+        <div class="who"><span><i style="background:var(--c)"></i>Condutor</span><span><i style="background:var(--s)"></i>Conduzido</span></div>
+      </div>
+      <div class="controls">
+        <button id="prev" aria-label="Tempo anterior">◀</button>
+        <button id="play">▶ Tocar</button>
+        <button id="next" aria-label="Próximo tempo">▶|</button>
+        <div class="bpm"><label for="bpm">Andamento</label><input id="bpm" type="range" min="40" max="150" value="90"><span id="bpmv">90 bpm</span></div>
+        <label class="chk"><input id="loop" type="checkbox" checked>Repetir</label>
+        <label class="chk"><input id="sound" type="checkbox">Som do tempo</label>
+      </div>
+    </section>
+
+    <section class="editor">
+      <h2>Notação</h2>
+      <div class="row">
+        <label for="preset">Exemplo</label>
+        <select id="preset"></select>
+      </div>
+      <div class="palette" id="palette"></div>
+      <textarea id="src" spellcheck="false" aria-label="Notação do passo"></textarea>
+      <p class="hint">Sem teclado de setas? Use &lt; &gt; ^ v para as direções e um ponto para “no lugar”. A linha S é opcional: sem ela, o conduzido espelha o condutor.</p>
+      <ul id="errors"></ul>
+    </section>
+  </div>
+
+  <section class="below">
+    <h2>Grade de tempos</h2>
+    <div id="grid"></div>
+
+    <details>
+      <summary>Guia dos símbolos</summary>
+      <div class="legend">
+        <div><code>E D</code><span>pé esquerdo, pé direito</span></div>
+        <div><code>← →</code><span>passo para o lado</span></div>
+        <div><code>↑ ↓</code><span>passo para frente, para trás</span></div>
+        <div><code>·</code><span>marca no lugar</span></div>
+        <div><code>x</code><span>junta ao outro pé</span></div>
+        <div><code>~</code><span>pausa</span></div>
+        <div><code>(E·)</code><span>toque sem passar o peso</span></div>
+        <div><code>↺½ ↻1</code><span>giro anti-horário meia volta, horário volta inteira</span></div>
+        <div><code>"texto"</code><span>dica de condução, colada ao passo</span></div>
+        <div><code>[F] [A] [M]</code><span>abraço fechado, aberto, mãos dadas</span></div>
+        <div><code>C: S:</code><span>linha do condutor, linha do conduzido</span></div>
+        <div><code>|</code><span>separador visual, não conta tempo</span></div>
+      </div>
+    </details>
+  </section>
+</div>
+
+<script>
+(function(){
+const L=40, GAP=22, INIT=11;
+const DIST={F:70,A:110,M:150};
+const HOLD={F:'Abraço fechado',A:'Abraço aberto',M:'Mãos dadas'};
+const PRESETS=[
+ {name:'Básico lateral',text:
+`[F]   1    2    3    4  |  5    6    7    8
+C:    E←   Dx   E·   ~  |  D→   Ex   D·   ~`},
+ {name:'Básico com toque',text:
+`[F]   1    2    3     4  |  5    6    7     8
+C:    E←   Dx   (E·)  ~  |  D→   Ex   (D·)  ~`},
+ {name:'Básico frente e trás',text:
+`[F]   1    2    3    4  |  5    6    7    8
+C:    E↑   D·   Ex   ~  |  D↓   E·   Dx   ~`},
+ {name:'Giro simples do conduzido',text:
+`[A]   1                   2       3       4  |  5    6    7    8
+C:    E←"levanta a mão"   Dx      E·      ~  |  D→   Ex   D·   ~
+S:    D→                  Ex↺½    D·↺½    ~  |  E←   Dx   E·   ~
+
+[F]   1    2    3    4  |  5    6    7    8
+C:    E←   Dx   E·   ~  |  D→   Ex   D·   ~`},
+ {name:'Caminhada frente e trás',text:
+`[F]   1    2    3    4  |  5    6    7    8
+C:    E↑   D↑   Ex   ~  |  D↓   E↓   Dx   ~`}
+];
+const $=s=>document.querySelector(s);
+const src=$('#src');
+
+/* ---------- parsing ---------- */
+function normalize(t){
+  return t.replace(/<-?/g,'←').replace(/-?>/g,'→').replace(/\^/g,'↑').replace(/v/g,'↓')
+          .replace(/(^|[^\d])\.(?!\d)/g,'$1·').replace(/X/g,'x')
+          .replace(/1\/2/g,'½').replace(/1\/4/g,'¼').replace(/3\/4/g,'¾');
+}
+const PAUSE={pause:true,raw:'~'};
+function parseToken(raw){
+  let note=null,t=raw;
+  const m=t.match(/"([^"]*)"/);
+  if(m){note=m[1];t=t.replace(m[0],'');}
+  t=normalize(t);
+  if(t===''||t==='~') return {pause:true,raw,note};
+  let tap=false;
+  if(t.startsWith('(')&&t.endsWith(')')){tap=true;t=t.slice(1,-1);}
+  const foot=t[0]?t[0].toUpperCase():'';
+  if(foot!=='E'&&foot!=='D') return {pause:true,raw,note,error:`“${raw}” precisa começar com E ou D`};
+  let rest=t.slice(1),rot=0;
+  const rm=rest.match(/([↺↻])(½|¼|¾|\d+(?:[.,]\d+)?)?/);
+  if(rm){
+    const q=rm[2]; let amt=1;
+    if(q==='½')amt=.5;else if(q==='¼')amt=.25;else if(q==='¾')amt=.75;else if(q)amt=parseFloat(q.replace(',','.'));
+    rot=(rm[1]==='↻'?1:-1)*amt; rest=rest.replace(rm[0],'');
+  }
+  const dirs=[];
+  for(const ch of rest){
+    if('←→↑↓·x'.includes(ch)) dirs.push(ch);
+    else return {pause:true,raw,note,error:`“${raw}” tem um símbolo que não conheço: ${ch}`};
+  }
+  if(!dirs.length){
+    if(!rot) return {pause:true,raw,note,error:`“${raw}” precisa de uma direção (← → ↑ ↓ · x)`};
+    dirs.push('·');
+  }
+  return {raw,foot,dirs,tap,rot,note};
+}
+function fracStr(a){return a===.5?'½':a===.25?'¼':a===.75?'¾':String(a)}
+function fmt(a){
+  if(a.pause) return '~'+(a.note?`"${a.note}"`:'');
+  let s=a.foot+a.dirs.join('');
+  if(a.rot) s+=(a.rot>0?'↻':'↺')+fracStr(Math.abs(a.rot));
+  if(a.tap) s='('+s+')';
+  return s;
+}
+function mirror(a){
+  if(a.pause) return {pause:true,raw:'~'};
+  const sw={'←':'→','→':'←','↑':'↓','↓':'↑'};
+  const b={foot:a.foot==='E'?'D':'E',dirs:a.dirs.map(d=>sw[d]||d),tap:a.tap,rot:-a.rot,note:null};
+  b.raw=fmt(b); return b;
+}
+function parseText(text){
+  const phrases=[],errors=[]; let hold='F',cur=null;
+  text.split('\n').forEach((line,li)=>{
+    let s=line.trim(); if(!s) return;
+    const hm=s.match(/^\[([FAM])\]/i);
+    if(hm){hold=hm[1].toUpperCase();s=s.slice(hm[0].length).trim();}
+    const m=s.match(/^([CS])\s*:(.*)$/i);
+    if(!m) return;
+    const role=m[1].toUpperCase();
+    const toks=(m[2].match(/[^\s"]*"[^"]*"[^\s"]*|\S+/g)||[]).filter(t=>t!=='|');
+    const acts=toks.map(parseToken);
+    acts.forEach(a=>{if(a.error)errors.push(`Linha ${li+1}: ${a.error}`)});
+    if(role==='C'){cur={hold,C:acts,S:null,auto:false};phrases.push(cur);}
+    else{
+      if(!cur){errors.push(`Linha ${li+1}: escreva a linha C antes da linha S`);return;}
+      cur.S=acts;
+    }
+  });
+  phrases.forEach(p=>{if(!p.S){p.S=p.C.map(mirror);p.auto=true;}});
+  return {phrases,errors};
+}
+
+/* ---------- simulation ---------- */
+function toWorld(d,p){const c=Math.cos(d.h),s=Math.sin(d.h);return [d.c[0]+c*p[0]-s*p[1],d.c[1]+s*p[0]+c*p[1]]}
+function toVec(d,p){const c=Math.cos(d.h),s=Math.sin(d.h);return [c*p[0]-s*p[1],s*p[0]+c*p[1]]}
+function apply(d,a){
+  const fx={};
+  if(!a||a.pause) return fx;
+  const f=a.foot,o=f==='E'?'D':'E',P=d[f],Q=d[o];
+  let t=[P[0],P[1]];
+  const has=x=>a.dirs.includes(x);
+  if(has('x')) t=[Q[0],Q[1]+(f==='E'?-GAP:GAP)];
+  if(has('↑')) t[0]=Q[0]+L;
+  if(has('↓')) t[0]=Q[0]-L;
+  if(has('←')) t[1]=Q[1]-L;
+  if(has('→')) t[1]=Q[1]+L;
+  const moved=Math.hypot(t[0]-P[0],t[1]-P[1])>.5;
+  if(a.tap){
+    if(moved) fx.tap={foot:f,target:toWorld(d,t)}; else fx.pulse=f;
+  }else{
+    d[f]=t;
+    const mid=[(t[0]+Q[0])/2,(t[1]+Q[1])/2];
+    const off=[mid[0]+(t[0]-mid[0])*.35,mid[1]+(t[1]-mid[1])*.35];
+    const w=toVec(d,off);
+    d.c=[d.c[0]+w[0],d.c[1]+w[1]];
+    d.E=[d.E[0]-off[0],d.E[1]-off[1]];
+    d.D=[d.D[0]-off[0],d.D[1]-off[1]];
+    d.w=f;
+    if(moved) fx.step=f; else fx.pulse=f;
+  }
+  if(a.rot) d.h+=a.rot*2*Math.PI;
+  return fx;
+}
+function simulate(phrases){
+  const beats=[];
+  phrases.forEach((p,pi)=>{
+    const n=Math.max(p.C.length,p.S.length);
+    for(let b=0;b<n;b++) beats.push({pi,b,n,hold:p.hold,C:p.C[b]||PAUSE,S:p.S[b]||PAUSE});
+  });
+  const d0=DIST[(phrases[0]||{}).hold||'F'];
+  const st={
+    C:{c:[0,d0/2],h:-Math.PI/2,E:[0,-INIT],D:[0,INIT],w:'D'},
+    S:{c:[0,-d0/2],h:Math.PI/2,E:[0,-INIT],D:[0,INIT],w:'E'}
+  };
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  const states=[clone(st)],fx=[];
+  beats.forEach(bt=>{fx.push({C:apply(st.C,bt.C),S:apply(st.S,bt.S)});states.push(clone(st));});
+  return {phrases,beats,states,fx};
+}
+
+/* ---------- SVG setup ---------- */
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+const G={};
+['C','S'].forEach(R=>{
+  const body=el('g',{class:'body '+R},$('#bodies'));
+  el('ellipse',{rx:9,ry:22,class:'shoulders'},body);
+  el('circle',{r:7,class:'head'},body);
+  el('path',{d:'M12 -5 L20 0 L12 5 Z',class:'nose'},body);
+  const role=el('text',{class:'role '+R,'text-anchor':'middle','dominant-baseline':'central'},$('#labels'));
+  role.textContent=R;
+  const feet={};
+  ['E','D'].forEach(F=>{
+    const ghost=el('ellipse',{rx:10,ry:5.5,class:'ghost '+R},$('#ghosts'));
+    const g=el('g',{class:'foot '+R},$('#feet'));
+    el('ellipse',{rx:10,ry:5.5},g);
+    const t=el('text',{class:'ft','text-anchor':'middle','dominant-baseline':'central'},$('#feet'));
+    t.textContent=F;
+    feet[F]={g,t,ghost};
+  });
+  G[R]={body,role,feet};
+});
+const arms=$('#arms'),world=$('#world');
+
+/* ---------- state & rendering ---------- */
+let model=simulate([]),N=0,pos=0,playing=false,stopAt=null,lastTs=null,lastK=-1,cam=null;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+const lerp=(a,b,f)=>a+(b-a)*f;
+const lerp2=(a,b,f)=>[lerp(a[0],b[0],f),lerp(a[1],b[1],f)];
+
+function render(){
+  const {states,fx,beats}=model;
+  let A,B,E,f=0,frac=0,k=0;
+  if(!beats.length){A=B=states[0];E={C:{},S:{}};}
+  else{
+    k=Math.min(Math.floor(pos),beats.length-1);
+    frac=clamp(pos-k);
+    f=ease(clamp(frac/.6));
+    A=states[k];B=states[k+1];E=fx[k];
+  }
+  const centers={};
+  ['C','S'].forEach(R=>{
+    const a=A[R],b=B[R],e=E[R]||{};
+    const d={c:lerp2(a.c,b.c,f),h:lerp(a.h,b.h,f),E:lerp2(a.E,b.E,f),D:lerp2(a.D,b.D,f)};
+    const w=f<.5?a.w:b.w, deg=d.h*180/Math.PI;
+    centers[R]=d.c;
+    G[R].body.setAttribute('transform',`translate(${d.c[0].toFixed(2)} ${d.c[1].toFixed(2)}) rotate(${deg.toFixed(2)})`);
+    const rp=toWorld(d,[-26,0]);
+    G[R].role.setAttribute('x',rp[0].toFixed(2));G[R].role.setAttribute('y',rp[1].toFixed(2));
+    ['E','D'].forEach(F=>{
+      let p=toWorld(d,d[F]),s=1;
+      if(e.tap&&e.tap.foot===F){const q=Math.sin(Math.PI*clamp(frac/.7));p=[lerp(p[0],e.tap.target[0],q),lerp(p[1],e.tap.target[1],q)];}
+      if(e.pulse===F) s=1+.35*Math.sin(Math.PI*clamp(frac/.5));
+      const ft=G[R].feet[F];
+      ft.g.setAttribute('transform',`translate(${p[0].toFixed(2)} ${p[1].toFixed(2)}) rotate(${deg.toFixed(2)}) scale(${s.toFixed(3)})`);
+      ft.g.classList.toggle('w',w===F);
+      ft.t.classList.toggle('w',w===F);
+      ft.t.setAttribute('x',p[0].toFixed(2));ft.t.setAttribute('y',p[1].toFixed(2));
+      if(e.step===F&&frac<.95){
+        const gp=toWorld(a,a[F]);
+        ft.ghost.setAttribute('transform',`translate(${gp[0].toFixed(2)} ${gp[1].toFixed(2)}) rotate(${(a.h*180/Math.PI).toFixed(2)})`);
+        ft.ghost.style.display='';
+      }else ft.ghost.style.display='none';
+    });
+  });
+  const hold=beats.length?beats[k].hold:'F';
+  arms.setAttribute('x1',centers.C[0]);arms.setAttribute('y1',centers.C[1]);
+  arms.setAttribute('x2',centers.S[0]);arms.setAttribute('y2',centers.S[1]);
+  arms.setAttribute('stroke-width',hold==='F'?5:hold==='A'?3:2);
+  arms.setAttribute('stroke-dasharray',hold==='M'?'4 5':'none');
+  const target=[(centers.C[0]+centers.S[0])/2,(centers.C[1]+centers.S[1])/2];
+  if(!cam) cam=target.slice(); else {cam[0]+=(target[0]-cam[0])*.08;cam[1]+=(target[1]-cam[1])*.08;}
+  world.setAttribute('transform',`translate(${(-cam[0]).toFixed(2)} ${(-cam[1]).toFixed(2)})`);
+  if(beats.length&&k!==lastK){lastK=k;onBeat(k);}
+}
+function onBeat(k){
+  const bt=model.beats[k];
+  $('#cnum').textContent=bt.b+1;
+  $('#cof').textContent='de '+bt.n;
+  $('#hold').textContent=HOLD[bt.hold];
+  $('#phase').textContent=`Frase ${bt.pi+1} de ${model.phrases.length}`;
+  const notes=[];
+  if(bt.C.note) notes.push(`<span>C: ${esc(bt.C.note)}</span>`);
+  if(bt.S.note) notes.push(`<span>S: ${esc(bt.S.note)}</span>`);
+  $('#note').innerHTML=notes.join('');
+  document.querySelectorAll('#grid .on').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll(`#grid [data-k="${k}"],#grid [data-h="${k}"]`).forEach(x=>x.classList.add('on'));
+  if(playing) thump(bt.b%4===0);
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+function renderGrid(){
+  let k0=0;
+  $('#grid').innerHTML=model.phrases.map((p,pi)=>{
+    const n=Math.max(p.C.length,p.S.length);
+    let h='',c='',s='';
+    for(let b=0;b<n;b++){
+      const k=k0+b,a=p.C[b]||PAUSE,z=p.S[b]||PAUSE;
+      h+=`<th data-h="${k}">${b+1}</th>`;
+      c+=`<td tabindex="0" data-k="${k}" class="${a.error?'bad':''}">${esc(a.raw)}</td>`;
+      s+=`<td tabindex="0" data-k="${k}" class="${p.auto?'auto':''}${z.error?' bad':''}">${esc(z.raw)}</td>`;
+    }
+    k0+=n;
+    return `<div class="phrase"><div class="ph-head">Frase ${pi+1}, ${HOLD[p.hold].toLowerCase()}</div>
+      <table><tr><th></th>${h}</tr><tr><th class="C">C</th>${c}</tr><tr><th class="S">S</th>${s}</tr></table>
+      ${p.auto?'<div class="mirror">Linha S gerada por espelho.</div>':''}</div>`;
+  }).join('')||'<p class="hint">Escreva uma linha começando com C: para ver a grade.</p>';
+  lastK=-1;
+}
+
+/* ---------- audio ---------- */
+let ac=null;
+function thump(accent){
+  if(!$('#sound').checked) return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(accent?95:170,t);
+    o.frequency.exponentialRampToValueAtTime(accent?48:90,t+.12);
+    g.gain.setValueAtTime(accent?.7:.35,t);
+    g.gain.exponentialRampToValueAtTime(.001,t+.2);
+    o.connect(g).connect(ac.destination);o.start(t);o.stop(t+.22);
+  }catch(e){}
+}
+
+/* ---------- playback ---------- */
+function bpm(){return +$('#bpm').value}
+function setPlaying(v){
+  playing=v;
+  $('#play').textContent=v&&stopAt===null?'❚❚ Pausar':'▶ Tocar';
+}
+function stepTo(k){
+  if(!N) return;
+  k=((k%N)+N)%N;
+  pos=k;stopAt=k+.999;lastK=-1;setPlaying(true);
+}
+function curK(){return Math.min(Math.floor(pos),Math.max(N-1,0))}
+$('#play').onclick=()=>{
+  if(!N) return;
+  if(playing&&stopAt===null){setPlaying(false);return;}
+  stopAt=null;
+  if(pos>=N-.01) pos=0;
+  lastK=-1;
+  setPlaying(true);
+};
+$('#next').onclick=()=>stepTo(pos>=curK()+.99?curK()+1:curK());
+$('#prev').onclick=()=>stepTo(curK()-1);
+$('#bpm').oninput=()=>{$('#bpmv').textContent=bpm()+' bpm'};
+$('#grid').addEventListener('click',e=>{const td=e.target.closest('td[data-k]');if(td)stepTo(+td.dataset.k)});
+$('#grid').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('td[data-k]')){e.preventDefault();stepTo(+e.target.dataset.k)}});
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('textarea,input,select,button,td')) return;
+  if(e.key===' '){e.preventDefault();$('#play').click();}
+  if(e.key==='ArrowRight') $('#next').click();
+  if(e.key==='ArrowLeft') $('#prev').click();
+});
+
+function frame(ts){
+  const dt=lastTs==null?0:Math.min(.1,(ts-lastTs)/1000);lastTs=ts;
+  if(playing&&N){
+    pos+=dt*bpm()/60;
+    if(stopAt!==null&&pos>=stopAt){pos=stopAt;stopAt=null;setPlaying(false);}
+    else if(pos>=N){
+      if($('#loop').checked){pos%=N;lastK=-1;}
+      else{pos=N-.001;setPlaying(false);}
+    }
+  }
+  render();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- editor ---------- */
+function rebuild(){
+  const r=parseText(src.value);
+  model=simulate(r.phrases);N=model.beats.length;
+  $('#errors').innerHTML=r.errors.map(e=>`<li>${esc(e)}</li>`).join('');
+  renderGrid();
+  if(pos>=N) pos=0;
+  if(!N){$('#cnum').textContent='–';$('#cof').textContent='';$('#note').innerHTML='';}
+  try{localStorage.setItem('forro-tab',src.value)}catch(e){}
+}
+let timer=null;
+src.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(rebuild,250)});
+
+const sel=$('#preset');
+sel.innerHTML=PRESETS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('')+'<option value="-1">Meu passo</option>';
+sel.onchange=()=>{const p=PRESETS[+sel.value];if(!p)return;src.value=p.text;pos=0;cam=null;setPlaying(false);rebuild();};
+
+const SYMS=['←','→','↑','↓','·','x','~','(',')','↺½','↻½','↺1','|','"','[F]','[A]','[M]','C: ','S: '];
+$('#palette').innerHTML=SYMS.map(s=>`<button type="button" data-s="${esc(s)}">${esc(s.trim())}</button>`).join('');
+$('#palette').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const a=src.selectionStart,z=src.selectionEnd;
+  src.setRangeText(b.dataset.s,a,z,'end');src.focus();
+  sel.value='-1';clearTimeout(timer);timer=setTimeout(rebuild,150);
+});
+src.addEventListener('input',()=>{sel.value='-1'});
+
+let saved=null;
+try{saved=localStorage.getItem('forro-tab')}catch(e){}
+if(saved){src.value=saved;sel.value='-1';}
+else{src.value=PRESETS[0].text;sel.value='0';}
+rebuild();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
