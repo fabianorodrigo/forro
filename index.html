@@ -32,8 +32,11 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:Karla,"Helvet
 header{margin-bottom:20px}
 h1{font-family:"Alfa Slab One",Rockwell,"Courier New",serif;font-weight:400;font-size:clamp(2rem,5.5vw,3.4rem);line-height:1.02;margin:0 0 6px;letter-spacing:-.01em}
 header p{margin:0;color:var(--muted);max-width:60ch}
-.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
-@media (max-width:860px){.main{grid-template-columns:1fr}}
+.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-areas:"left editor" "left timing";grid-template-rows:auto 1fr;gap:24px;align-items:start}
+.left{grid-area:left}
+.editor{grid-area:editor}
+.timing{grid-area:timing}
+@media (max-width:860px){.main{grid-template-columns:1fr;grid-template-areas:"left" "editor" "timing";grid-template-rows:auto}}
 
 .stage{position:relative;background:var(--floor);border:2px solid var(--ink);border-radius:6px;overflow:hidden;aspect-ratio:1/1;max-height:78vh}
 .stage svg{display:block;width:100%;height:100%}
@@ -57,15 +60,25 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 label.chk{display:flex;align-items:center;gap:6px;cursor:pointer}
 label.chk input{accent-color:var(--s)}
 
-.editor h2,.below h2{font-family:"Alfa Slab One",Rockwell,serif;font-weight:400;font-size:1.3rem;margin:0 0 8px}
+.editor h2,.timing h2,.below h2,dialog h2{font-family:"Alfa Slab One",Rockwell,serif;font-weight:400;font-size:1.3rem;margin:0 0 8px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .palette{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .palette button{font-family:"JetBrains Mono",Menlo,Consolas,monospace;padding:4px 0;min-width:36px;text-align:center}
 textarea{width:100%;min-height:230px;resize:vertical;font-family:"JetBrains Mono",Menlo,Consolas,monospace;font-size:14px;line-height:1.7;color:var(--ink);background:var(--paper2);border:1.5px solid var(--ink);border-radius:4px;padding:12px}
 .hint{font-size:.9rem;color:var(--muted);margin:6px 0 0}
 #errors{margin:8px 0 0;padding:0;list-style:none;color:var(--s);font-weight:600;font-size:.92rem}
+.editor .row{margin-bottom:0}
+.editor select{flex:1 1 180px;min-width:0}
+dialog{width:min(720px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:6px}
+dialog::backdrop{background:rgba(35,26,18,.55)}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field input{font:inherit;color:var(--ink);background:var(--paper2);border:1.5px solid var(--ink);border-radius:4px;padding:6px 10px}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+button.primary{background:var(--ink);color:var(--paper);font-weight:700}
+button.primary:hover{background:var(--sun);color:#231A12}
 
 .below{margin-top:32px}
+.timing{min-width:0}
 #grid{display:flex;flex-direction:column;gap:14px}
 .phrase{overflow-x:auto}
 .ph-head{font-weight:700;margin-bottom:4px}
@@ -111,8 +124,7 @@ summary{cursor:pointer;font-family:"Alfa Slab One",Rockwell,serif;font-size:1.2r
   </header>
 
   <div class="main">
-
-    <section>
+    <section class="left">
       <div class="stage">
         <svg id="floor" viewBox="-170 -170 340 340" role="img" aria-label="Pista vista de cima com a dupla dançando">
           <defs>
@@ -145,22 +157,21 @@ summary{cursor:pointer;font-family:"Alfa Slab One",Rockwell,serif;font-size:1.2r
     </section>
 
     <section class="editor">
-      <h2>Notação</h2>
+      <h2><label for="preset">Passo</label></h2>
       <div class="row">
-        <label for="preset">Exemplo</label>
         <select id="preset"></select>
+        <button type="button" id="edit">Editar</button>
+        <button type="button" id="new">Novo</button>
       </div>
-      <div class="palette" id="palette"></div>
-      <textarea id="src" spellcheck="false" aria-label="Notação do passo"></textarea>
-      <p class="hint">Sem teclado de setas? Use &lt; &gt; ^ v para as direções e um ponto para “no lugar”. A linha S é opcional: sem ela, o conduzido espelha o condutor.</p>
-      <ul id="errors"></ul>
+    </section>
+
+    <section class="timing">
+      <h2>Grade de tempos</h2>
+      <div id="grid"></div>
     </section>
   </div>
 
   <section class="below">
-    <h2>Grade de tempos</h2>
-    <div id="grid"></div>
-
     <details>
       <summary>Guia dos símbolos</summary>
       <div class="legend">
@@ -180,6 +191,22 @@ summary{cursor:pointer;font-family:"Alfa Slab One",Rockwell,serif;font-size:1.2r
     </details>
   </section>
 </div>
+
+<dialog id="dlg" aria-labelledby="dlgt">
+  <h2 id="dlgt">Editar passo</h2>
+  <div class="field">
+    <label for="name">Nome</label>
+    <input id="name" type="text" autocomplete="off">
+  </div>
+  <div class="palette" id="palette"></div>
+  <textarea id="src" spellcheck="false" aria-label="Notação do passo"></textarea>
+  <p class="hint">Sem teclado de setas? Use &lt; &gt; ^ v para as direções e um ponto para “no lugar”. A linha S é opcional: sem ela, o conduzido espelha o condutor.</p>
+  <ul id="errors"></ul>
+  <div class="actions">
+    <button type="button" id="cancel">Cancelar</button>
+    <button type="button" id="save" class="primary">Salvar</button>
+  </div>
+</dialog>
 
 <script>
 (function(){
@@ -486,7 +513,7 @@ $('#bpm').oninput=()=>{$('#bpmv').textContent=bpm()+' bpm'};
 $('#grid').addEventListener('click',e=>{const td=e.target.closest('td[data-k]');if(td)stepTo(+td.dataset.k)});
 $('#grid').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('td[data-k]')){e.preventDefault();stepTo(+e.target.dataset.k)}});
 document.addEventListener('keydown',e=>{
-  if(e.target.matches('textarea,input,select,button,td')) return;
+  if(document.getElementById('dlg').open||e.target.matches('textarea,input,select,button,td')) return;
   if(e.key===' '){e.preventDefault();$('#play').click();}
   if(e.key==='ArrowRight') $('#next').click();
   if(e.key==='ArrowLeft') $('#prev').click();
@@ -506,22 +533,56 @@ function frame(ts){
   requestAnimationFrame(frame);
 }
 
-/* ---------- editor ---------- */
+/* ---------- passos e editor ---------- */
+const sel=$('#preset'),dlg=$('#dlg'),nameIn=$('#name');
+let steps=PRESETS.map(p=>({name:p.name,text:p.text}));
+let current=0,editing=null; // editing: índice do passo ou -1 para novo
+try{
+  const st=JSON.parse(localStorage.getItem('forro-steps')||'null');
+  if(Array.isArray(st)&&st.length) steps=st;
+  const c=+localStorage.getItem('forro-sel');
+  if(c>=0&&c<steps.length) current=c;
+}catch(e){}
+function persist(){try{localStorage.setItem('forro-steps',JSON.stringify(steps));localStorage.setItem('forro-sel',String(current));}catch(e){}}
+function fillSelect(){
+  sel.innerHTML=steps.map((p,i)=>`<option value="${i}">${esc(p.name)}</option>`).join('');
+  sel.value=String(current);
+}
 function rebuild(){
-  const r=parseText(src.value);
+  const r=parseText(steps[current]?steps[current].text:'');
   model=simulate(r.phrases);N=model.beats.length;
-  $('#errors').innerHTML=r.errors.map(e=>`<li>${esc(e)}</li>`).join('');
   renderGrid();
   if(pos>=N) pos=0;
-  if(!N){$('#cnum').textContent='–';$('#cof').textContent='';$('#note').innerHTML='';}
-  try{localStorage.setItem('forro-tab',src.value)}catch(e){}
+  if(!N){$('#cnum').textContent='–';$('#cof').textContent='';$('#note').innerHTML='';$('#phase').textContent='';}
 }
-let timer=null;
-src.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(rebuild,250)});
+function showErrors(){
+  const r=parseText(src.value);
+  $('#errors').innerHTML=r.errors.map(e=>`<li>${esc(e)}</li>`).join('');
+}
+sel.onchange=()=>{current=+sel.value;pos=0;cam=null;setPlaying(false);rebuild();persist();};
 
-const sel=$('#preset');
-sel.innerHTML=PRESETS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('')+'<option value="-1">Meu passo</option>';
-sel.onchange=()=>{const p=PRESETS[+sel.value];if(!p)return;src.value=p.text;pos=0;cam=null;setPlaying(false);rebuild();};
+function openEditor(idx){
+  editing=idx;
+  setPlaying(false);
+  $('#dlgt').textContent=idx<0?'Novo passo':'Editar passo';
+  nameIn.value=idx<0?'':steps[idx].name;
+  src.value=idx<0?'':steps[idx].text;
+  showErrors();
+  dlg.showModal();
+  (idx<0?nameIn:src).focus();
+}
+$('#edit').onclick=()=>openEditor(current);
+$('#new').onclick=()=>openEditor(-1);
+$('#cancel').onclick=()=>dlg.close();
+$('#save').onclick=()=>{
+  const name=nameIn.value.trim()||('Passo novo '+(steps.length+1));
+  if(editing<0){steps.push({name,text:src.value});current=steps.length-1;}
+  else{steps[editing]={name,text:src.value};current=editing;}
+  fillSelect();pos=0;cam=null;rebuild();persist();
+  dlg.close();
+};
+let timer=null;
+src.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(showErrors,250)});
 
 const SYMS=['←','→','↑','↓','·','x','~','(',')','↺¼','↻¼','↺½','↻½','↺1','↻1','|','"','[F]','[A]','[M]','C: ','S: '];
 $('#palette').innerHTML=SYMS.map(s=>`<button type="button" data-s="${esc(s)}">${esc(s.trim())}</button>`).join('');
@@ -529,14 +590,10 @@ $('#palette').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   const a=src.selectionStart,z=src.selectionEnd;
   src.setRangeText(b.dataset.s,a,z,'end');src.focus();
-  sel.value='-1';clearTimeout(timer);timer=setTimeout(rebuild,150);
+  clearTimeout(timer);timer=setTimeout(showErrors,150);
 });
-src.addEventListener('input',()=>{sel.value='-1'});
 
-let saved=null;
-try{saved=localStorage.getItem('forro-tab')}catch(e){}
-if(saved){src.value=saved;sel.value='-1';}
-else{src.value=PRESETS[0].text;sel.value='0';}
+fillSelect();
 rebuild();
 requestAnimationFrame(frame);
 })();
