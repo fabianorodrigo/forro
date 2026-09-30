@@ -151,6 +151,7 @@ summary{cursor:pointer;font-family:"Alfa Slab One",Rockwell,serif;font-size:1.2r
       <div class="controls">
         <button id="prev" aria-label="Tempo anterior">◀</button>
         <button id="play">▶ Tocar</button>
+        <button id="stop" aria-label="Parar e voltar ao início">■ Parar</button>
         <button id="next" aria-label="Próximo tempo">▶|</button>
         <div class="bpm"><label for="bpm">Andamento</label><input id="bpm" type="range" min="40" max="150" value="90"><span id="bpmv">90 bpm</span></div>
         <label class="chk"><input id="loop" type="checkbox" checked>Repetir</label>
@@ -218,13 +219,13 @@ const L=40, GAP=22, INIT=11;
 const DIST={F:70,A:110,M:150};
 const HOLD={F:'Abraço fechado',A:'Abraço aberto',M:'Mãos dadas'};
 const PRESETS=[
- {name:'Básico lateral',text:
+ {name:'Dois pra lá, Dois pra cá',text:
 `[F]   1    2    3    4  |  5    6    7    8
 C:    E←   Dx   E·   ~  |  D→   Ex   D·   ~`},
- {name:'Básico com toque',text:
-`[F]   1    2    3     4  |  5    6    7     8
-C:    E←   Dx   (E·)  ~  |  D→   Ex   (D·)  ~`},
- {name:'Básico frente e trás',text:
+ {name:'Dois pra lá, Dois pra cá (toque)',text:
+`[F]   1    2      3    4  |  5    6      7    8
+C:    E←   (Dx)   ~    ~  |  D→   (Ex)   ~    ~`},
+ {name:'Ciclo básico',text:
 `[F]   1    2    3    4  |  5    6    7    8
 C:    E↑   D·   Ex   ~  |  D↓   E·   Dx   ~`},
  {name:'Dobradiça',text:
@@ -337,6 +338,7 @@ function apply(d,a){
   if(has('←')) t[1]=Q[1]-L;
   if(has('→')) t[1]=Q[1]+L;
   const moved=Math.hypot(t[0]-P[0],t[1]-P[1])>.5;
+  if(moved&&d.w===f) fx.weightErr=true;
   if(a.tap){
     if(moved) fx.tap={foot:f,target:toWorld(d,t)}; else fx.pulse=f;
   }else{
@@ -360,14 +362,28 @@ function simulate(phrases){
     for(let b=0;b<n;b++) beats.push({pi,b,n,hold:p.hold,C:p.C[b]||PAUSE,S:p.S[b]||PAUSE});
   });
   const d0=DIST[(phrases[0]||{}).hold||'F'];
+  // começa com o peso no pé que não dá o primeiro passo
+  const firstFree=R=>{for(const bt of beats){const a=bt[R];if(a&&!a.pause)return a.foot;}return R==='C'?'E':'D';};
+  const wC=firstFree('C')==='E'?'D':'E', wS=firstFree('S')==='E'?'D':'E';
   const st={
-    C:{c:[0,d0/2],h:-Math.PI/2,E:[0,-INIT],D:[0,INIT],w:'D'},
-    S:{c:[0,-d0/2],h:Math.PI/2,E:[0,-INIT],D:[0,INIT],w:'E'}
+    C:{c:[0,d0/2],h:-Math.PI/2,E:[0,-INIT],D:[0,INIT],w:wC},
+    S:{c:[0,-d0/2],h:Math.PI/2,E:[0,-INIT],D:[0,INIT],w:wS}
   };
   const clone=x=>JSON.parse(JSON.stringify(x));
   const states=[clone(st)],fx=[];
-  beats.forEach(bt=>{fx.push({C:apply(st.C,bt.C),S:apply(st.S,bt.S)});states.push(clone(st));});
-  return {phrases,beats,states,fx};
+  const warnings=[];
+  const FOOT={E:'esquerdo',D:'direito'};
+  beats.forEach((bt,k)=>{
+    const e={C:apply(st.C,bt.C),S:apply(st.S,bt.S)};
+    ['C','S'].forEach(R=>{
+      if(!e[R].weightErr) return;
+      if(R==='S'&&phrases[bt.pi].auto) return; // o espelho repete o aviso do condutor
+      const a=bt[R];
+      warnings.push({k,R,msg:`Frase ${bt.pi+1}, tempo ${bt.b+1} (${R}): “${a.raw}” move o pé ${FOOT[a.foot]}, que está com o peso. Passe o peso antes ou use o outro pé.`});
+    });
+    fx.push(e);states.push(clone(st));
+  });
+  return {phrases,beats,states,fx,warnings};
 }
 
 /* ---------- SVG setup ---------- */
@@ -464,14 +480,16 @@ function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 
 function renderGrid(){
   let k0=0;
+  const warn=new Set((model.warnings||[]).map(w=>w.k+w.R));
   $('#grid').innerHTML=model.phrases.map((p,pi)=>{
     const n=Math.max(p.C.length,p.S.length);
     let h='',c='',s='';
     for(let b=0;b<n;b++){
       const k=k0+b,a=p.C[b]||PAUSE,z=p.S[b]||PAUSE;
       h+=`<th data-h="${k}">${b+1}</th>`;
-      c+=`<td tabindex="0" data-k="${k}" class="${a.error?'bad':''}">${esc(a.raw)}</td>`;
-      s+=`<td tabindex="0" data-k="${k}" class="${p.auto?'auto':''}${z.error?' bad':''}">${esc(z.raw)}</td>`;
+      const wc=warn.has(k+'C'),ws=warn.has(k+'S');
+      c+=`<td tabindex="0" data-k="${k}" class="${a.error||wc?'bad':''}"${wc?' title="Pé com o peso"':''}>${esc(a.raw)}</td>`;
+      s+=`<td tabindex="0" data-k="${k}" class="${p.auto?'auto':''}${z.error||ws?' bad':''}"${ws?' title="Pé com o peso"':''}>${esc(z.raw)}</td>`;
     }
     k0+=n;
     return `<div class="phrase"><div class="ph-head">Frase ${pi+1}, ${HOLD[p.hold].toLowerCase()}</div>
@@ -517,6 +535,7 @@ $('#play').onclick=()=>{
   lastK=-1;
   setPlaying(true);
 };
+$('#stop').onclick=()=>{stopAt=null;setPlaying(false);pos=0;lastK=-1;};
 $('#next').onclick=()=>stepTo(pos>=curK()+.99?curK()+1:curK());
 $('#prev').onclick=()=>stepTo(curK()-1);
 $('#bpm').oninput=()=>{$('#bpmv').textContent=bpm()+' bpm'};
@@ -544,12 +563,25 @@ function frame(ts){
 }
 
 /* ---------- passos e editor ---------- */
+// exemplos de versões anteriores, ainda não editados, viram a versão atual
+const MIGRATIONS=[{"from": {"name": "Básico lateral", "text": "[F]   1    2    3    4  |  5    6    7    8\nC:    E←   Dx   E·   ~  |  D→   Ex   D·   ~"}, "to": "Dois pra lá, Dois pra cá"}, {"from": {"name": "Básico com toque", "text": "[F]   1    2    3     4  |  5    6    7     8\nC:    E←   Dx   (E·)  ~  |  D→   Ex   (D·)  ~"}, "to": "Dois pra lá, Dois pra cá (toque)"}, {"from": {"name": "Básico frente e trás", "text": "[F]   1    2    3    4  |  5    6    7    8\nC:    E↑   D·   Ex   ~  |  D↓   E·   Dx   ~"}, "to": "Ciclo básico"}, {"from": {"name": "Dobradiça", "text": "[F]   1       2    3    4  |  5       6    7    8\nC:    E←↺¼\"abre\"   Dx   E·   ~  |  D→↻¼\"fecha\"   Ex   D·   ~"}, "to": "Dobradiça"}];
+function migrate(list){
+  let changed=false;
+  const out=list.map(p=>{
+    const m=MIGRATIONS.find(x=>x.from.name===p.name&&x.from.text===p.text);
+    if(!m) return p;
+    const cur=PRESETS.find(x=>x.name===m.to);
+    if(!cur) return p;
+    changed=true;return {name:cur.name,text:cur.text};
+  });
+  return changed?out:list;
+}
 const sel=$('#preset'),dlg=$('#dlg'),nameIn=$('#name');
 let steps=PRESETS.map(p=>({name:p.name,text:p.text}));
 let current=0,editing=null; // editing: índice do passo ou -1 para novo
 try{
   const st=JSON.parse(localStorage.getItem('forro-steps')||'null');
-  if(Array.isArray(st)&&st.length) steps=st;
+  if(Array.isArray(st)&&st.length) steps=migrate(st);
   const c=+localStorage.getItem('forro-sel');
   if(c>=0&&c<steps.length) current=c;
 }catch(e){}
@@ -593,6 +625,7 @@ async function saveShared(){
   return saving;
 }
 function adoptList(list){
+  list=migrate(list);
   if(JSON.stringify(list)===JSON.stringify(steps)) return;
   const prevName=steps[current]&&steps[current].name;
   const prevText=steps[current]&&steps[current].text;
@@ -672,7 +705,8 @@ function rebuild(){
 }
 function showErrors(){
   const r=parseText(src.value);
-  $('#errors').innerHTML=r.errors.map(e=>`<li>${esc(e)}</li>`).join('');
+  const w=simulate(r.phrases).warnings.map(x=>x.msg);
+  $('#errors').innerHTML=r.errors.concat(w).map(e=>`<li>${esc(e)}</li>`).join('');
 }
 sel.onchange=()=>{current=+sel.value;pos=0;cam=null;setPlaying(false);rebuild();persist();};
 
