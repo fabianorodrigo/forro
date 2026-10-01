@@ -237,6 +237,10 @@ C:    E↑   D·   Ex   ~  |  D↓   E·   Dx   ~
 
 [F]   1                     2    3                    4  |  5                     6    7                    8
 C:    E←↺¼"solta mão esq."  D·   Ex↻¼"dá mão esq."    ~  |  D→↻¼"solta mão dir."  E·   Dx↺¼"dá mão dir."    ~`},
+ {name:'Chuveirinho',text:
+`[M]   1              2    3                         4  |  5      6    7      8
+C:    E↓"oposição"   D·   Ex"mãos sobre a cabeça"   ~  |  D→↻¼   E·   Dx↺¼   ~
+S:    D↓"oposição"   E·   Dx↺½"fica de costas"      ~  |  E←↺¼   D·   Ex↻¼   ~`},
  {name:'Giro simples do conduzido',text:
 `[A]   1                   2       3       4  |  5    6    7    8
 C:    E←"levanta a mão"   Dx      E·      ~  |  D→   Ex   D·   ~
@@ -564,7 +568,7 @@ function frame(ts){
 
 /* ---------- passos e editor ---------- */
 // exemplos de versões anteriores, ainda não editados, viram a versão atual
-const MIGRATIONS=[{"from": {"name": "Básico lateral", "text": "[F]   1    2    3    4  |  5    6    7    8\nC:    E←   Dx   E·   ~  |  D→   Ex   D·   ~"}, "to": "Dois pra lá, Dois pra cá"}, {"from": {"name": "Básico com toque", "text": "[F]   1    2    3     4  |  5    6    7     8\nC:    E←   Dx   (E·)  ~  |  D→   Ex   (D·)  ~"}, "to": "Dois pra lá, Dois pra cá (toque)"}, {"from": {"name": "Básico frente e trás", "text": "[F]   1    2    3    4  |  5    6    7    8\nC:    E↑   D·   Ex   ~  |  D↓   E·   Dx   ~"}, "to": "Ciclo básico"}, {"from": {"name": "Dobradiça", "text": "[F]   1       2    3    4  |  5       6    7    8\nC:    E←↺¼\"abre\"   Dx   E·   ~  |  D→↻¼\"fecha\"   Ex   D·   ~"}, "to": "Dobradiça"}];
+const MIGRATIONS=[{"from": {"name": "Chuveirinho", "text": "[M]   1                   2    3                       4  |  5      6    7      8\nC:    E↓\"oposição\"        D·   Ex\"mãos sobre a cabeça\"  ~  |  D→↻¼   E·   Dx↺¼   ~\nS:    D↓\"oposição\"        E·   Dx                      ~  |  E←↺¼   D·   Ex↻¼   ~"}, "to": "Chuveirinho"},{"from": {"name": "Básico lateral", "text": "[F]   1    2    3    4  |  5    6    7    8\nC:    E←   Dx   E·   ~  |  D→   Ex   D·   ~"}, "to": "Dois pra lá, Dois pra cá"}, {"from": {"name": "Básico com toque", "text": "[F]   1    2    3     4  |  5    6    7     8\nC:    E←   Dx   (E·)  ~  |  D→   Ex   (D·)  ~"}, "to": "Dois pra lá, Dois pra cá (toque)"}, {"from": {"name": "Básico frente e trás", "text": "[F]   1    2    3    4  |  5    6    7    8\nC:    E↑   D·   Ex   ~  |  D↓   E·   Dx   ~"}, "to": "Ciclo básico"}, {"from": {"name": "Dobradiça", "text": "[F]   1       2    3    4  |  5       6    7    8\nC:    E←↺¼\"abre\"   Dx   E·   ~  |  D→↻¼\"fecha\"   Ex   D·   ~"}, "to": "Dobradiça"}];
 function migrate(list){
   let changed=false;
   const out=list.map(p=>{
